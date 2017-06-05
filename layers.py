@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+eps = 1e-8
 
 def clip(x):
 	return tf.clip_by_value(x, -8, 8)
@@ -33,7 +34,7 @@ class FCVarDropout():
 
 	def get_output(self, x, deterministic, train_clip=False, thresh=3):
 		# Alpha is the dropout rate
-		log_alpha = clip(self.log_sigma2 - tf.log(self.W ** 2))
+		log_alpha = clip(self.log_sigma2 - tf.log(self.W**2 + eps))
 		
 		# Values of log_alpha that are above the threshold
 		clip_mask = tf.greater_equal(log_alpha, thresh)
@@ -50,13 +51,45 @@ class FCVarDropout():
 			if train_clip:
 				raise NotImplementedError
 			mu = tf.matmul(x,W)
-			si = tf.sqrt(tf.matmul(x*x, tf.exp(log_alpha) * self.W * self.W)+1e-8)
+			si = tf.matmul(x*x, tf.exp(log_alpha) * self.W * self.W)
+			si = tf.sqrt(si + eps)
 			return mu + tf.random_normal(tf.shape(mu), mean=0.0, stddev=1.0) * si
 			
 		activation = tf.cond(deterministic, true_path, false_path)
 		return self.nonlinearity(activation + self.b)
 		
 		
-class Conv2DDropout():
-	def __init__(self):
-		pass
+class Conv2DVarDropOut():
+	def __init__(self, num_in, num_filters, kernel_size, stride,
+				 padding, nonlinearity, ard_init=-10):
+		self.log_sigma2 = self.add_param(Constant(ard_init), self.shape, name="ls2")
+
+	def get_output(self, x, deterministic, train_clip=False, thresh=3):
+		# Alpha is the dropout rate
+		log_alpha = clip(self.log_sigma2 - tf.log(self.W**2 + eps))
+		
+		# Values of log_alpha that are above the threshold
+		clip_mask = tf.greater_equal(log_alpha, thresh)
+
+		def true_path(): # For inference
+			return tf.conv2d(x, kerns=T.switch(T.ge(log_alpha, thresh), 0, self.W),
+								  subsample=self.stride, border_mode=border_mode,
+								  conv_mode=conv_mode)
+		
+		def false_path(): # For training
+			W = self.W
+			if train_clip:
+				raise NotImplementedError
+			mu = tf.conv2d(x, kerns=W,
+								  subsample=self.stride, border_mode=border_mode,
+								  conv_mode=conv_mode)
+			si = tf.conv2d(x * input, kerns=tf.exp(log_alpha) * W * W,
+								  subsample=self.stride, border_mode=border_mode,
+								  conv_mode=conv_mode)
+			si = tf.sqrt(si + eps)
+			return mu + tf.random_normal(tf.shape(mu), mean=0.0, stddev=1.0) * si
+		
+		activation = tf.cond(deterministic, true_path, false_path)
+		return self.nonlinearity(activation) ### + self.b?
+
+

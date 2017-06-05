@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 import time
 
-from layers import FCVarDropout, clip
+from layers import FCVarDropout, clip #Conv2DVarDropOut
 
 batch_size = 32
 sess = tf.Session()
@@ -80,7 +80,11 @@ class LeNet():
 		
 		h = Flatten()(h)
 		
-		vd = FCVarDropout(9216,128,tf.nn.relu)
+		if num_channels == 2:
+			vd = FCVarDropout(9216,128,tf.nn.relu)
+		elif num_channels == 3:
+			vd = FCVarDropout(12544,128,tf.nn.relu)
+			
 		h = vd.get_output(h,self.deterministic)
 		
 		self.pred = Dense(num_classes, activation='softmax')(h)
@@ -145,8 +149,10 @@ class LeNet():
 
 
 def main():
-	dataset = 'mnist'
+	dataset = 'cifar100' # mnist, cifar10, cifar100
 	
+	# Load the data
+	# Download it first if necessary
 	if dataset == 'mnist':
 		(X_train, y_train), (X_test, y_test) = mnist.load_data()
 		img_size = 28
