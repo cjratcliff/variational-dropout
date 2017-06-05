@@ -78,10 +78,10 @@ class LeNet():
 		self.deterministic = tf.placeholder(tf.bool, name='d')
 
 		vd = Conv2DVarDropOut([3,3,1,32], (1,1))
-		h = vd.get_output(self.x,self.deterministic)
+		h = vd(self.x,self.deterministic)
 		
 		vd = Conv2DVarDropOut([3,3,32,64], (1,1))
-		h = vd.get_output(h,self.deterministic)
+		h = vd(h,self.deterministic)
 		
 		h = MaxPooling2D(pool_size=(2,2))(h)
 		
@@ -94,10 +94,10 @@ class LeNet():
 		else:
 			raise NotImplementedError
 			
-		h = vd.get_output(h,self.deterministic)
+		h = vd(h,self.deterministic)
 		
 		vd = FCVarDropout(500,num_classes,tf.nn.softmax)
-		self.pred = vd.get_output(h,self.deterministic)
+		self.pred = vd(h,self.deterministic)
 		
 		eps = 1e-8
 		pred = tf.clip_by_value(self.pred,eps,1-eps)
