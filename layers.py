@@ -7,10 +7,10 @@ def clip(x):
 	return tf.clip_by_value(x, -8, 8)
 	
 	
-def weight_matrix(num_in, num_out):
+def weight_matrix(dims):
 	with tf.variable_scope("weight"):
-		d = np.sqrt(6.0)/np.sqrt(num_in+num_out)
-		v = tf.Variable(tf.random_uniform(shape=[num_in, num_out], minval=-d, maxval=d))
+		d = np.sqrt(6.0)/np.sqrt(sum(dims))
+		v = tf.Variable(tf.random_uniform(shape=dims, minval=-d, maxval=d))
 		tf.add_to_collection('weights', v)
 		return v
 
@@ -23,9 +23,9 @@ def bias_vector(num_out):
 
 
 class FCVarDropout():
-	def __init__(self, num_in, num_out, nonlinearity, ard_init=-10):
+	def __init__(self, num_in, num_out, nonlinearity=tf.nn.relu, ard_init=-10):
 		self.reg = True
-		self.W = weight_matrix(num_in, num_out)
+		self.W = weight_matrix([num_in, num_out])
 		self.b = bias_vector(num_out)
 		self.nonlinearity = nonlinearity
 		# ARD is Automatic Relevance Determination
@@ -55,14 +55,20 @@ class FCVarDropout():
 			si = tf.sqrt(si + eps)
 			return mu + tf.random_normal(tf.shape(mu), mean=0.0, stddev=1.0) * si
 			
-		activation = tf.cond(deterministic, true_path, false_path)
-		return self.nonlinearity(activation + self.b)
+		h = tf.cond(deterministic, true_path, false_path)
+		return self.nonlinearity(h + self.b)
 		
 		
 class Conv2DVarDropOut():
-	def __init__(self, num_in, num_filters, kernel_size, stride,
-				 padding, nonlinearity, ard_init=-10):
-		self.log_sigma2 = self.add_param(Constant(ard_init), self.shape, name="ls2")
+	def __init__(self, kernel_shape, strides=(1,1,1,1), padding='VALID', nonlinearity=tf.nn.relu, ard_init=-10):
+		if len(strides) == 2:
+			strides = [1,strides[0],strides[1],1]
+		
+		self.W = weight_matrix(kernel_shape)
+		self.strides = strides
+		self.padding = padding
+		self.nonlinearity = nonlinearity
+		self.log_sigma2 = tf.Variable(ard_init*tf.ones(kernel_shape), 'ls2')
 
 	def get_output(self, x, deterministic, train_clip=False, thresh=3):
 		# Alpha is the dropout rate
@@ -72,24 +78,18 @@ class Conv2DVarDropOut():
 		clip_mask = tf.greater_equal(log_alpha, thresh)
 
 		def true_path(): # For inference
-			return tf.conv2d(x, kerns=T.switch(T.ge(log_alpha, thresh), 0, self.W),
-								  subsample=self.stride, border_mode=border_mode,
-								  conv_mode=conv_mode)
+			return tf.nn.conv2d(x, tf.where(clip_mask, tf.zeros_like(self.W), self.W), strides=self.strides, padding=self.padding)
 		
 		def false_path(): # For training
 			W = self.W
 			if train_clip:
 				raise NotImplementedError
-			mu = tf.conv2d(x, kerns=W,
-								  subsample=self.stride, border_mode=border_mode,
-								  conv_mode=conv_mode)
-			si = tf.conv2d(x * input, kerns=tf.exp(log_alpha) * W * W,
-								  subsample=self.stride, border_mode=border_mode,
-								  conv_mode=conv_mode)
+			mu = tf.nn.conv2d(x, W, strides=self.strides, padding=self.padding)
+			si = tf.nn.conv2d(x*x, tf.exp(log_alpha) * W*W, strides=self.strides, padding=self.padding)
 			si = tf.sqrt(si + eps)
 			return mu + tf.random_normal(tf.shape(mu), mean=0.0, stddev=1.0) * si
 		
-		activation = tf.cond(deterministic, true_path, false_path)
-		return self.nonlinearity(activation) ### + self.b?
+		h = tf.cond(deterministic, true_path, false_path)
+		return self.nonlinearity(h) ### + self.b?
 
 

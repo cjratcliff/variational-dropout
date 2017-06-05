@@ -1,3 +1,6 @@
+from __future__ import division
+from __future__ import print_function
+
 import tensorflow as tf
 import numpy as np
 from keras.datasets import mnist, cifar10, cifar100
@@ -7,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 import time
 
-from layers import FCVarDropout, clip#, Conv2DVarDropOut
+from layers import FCVarDropout, clip, Conv2DVarDropOut
 
 
 batch_size = 32
@@ -73,17 +76,19 @@ class LeNet():
 		self.x = tf.placeholder(tf.float32, [None,img_size,img_size,num_channels], 'x')
 		self.y = tf.placeholder(tf.float32, [None,num_classes], 'y')
 		self.deterministic = tf.placeholder(tf.bool, name='d')
-				
-		h = Conv2D(32, kernel_size=(3,3),
-						 activation='relu',
-						 input_shape=[None,img_size,img_size,num_channels])(self.x)
-		h = Conv2D(64, (3, 3), activation='relu')(h)
+
+		vd = Conv2DVarDropOut([3,3,1,32], (1,1))
+		h = vd.get_output(self.x,self.deterministic)
+		
+		vd = Conv2DVarDropOut([3,3,32,64], (1,1))
+		h = vd.get_output(h,self.deterministic)
+		
 		h = MaxPooling2D(pool_size=(2,2))(h)
 		
 		h = Flatten()(h)
 		
 		if num_channels == 1:
-			vd = FCVarDropout(9216,128,tf.nn.relu)
+			vd = FCVarDropout(9216,128,tf.nn.relu) ### 500 instead?
 		elif num_channels == 3:
 			vd = FCVarDropout(12544,128,tf.nn.relu)
 		else:
@@ -91,7 +96,7 @@ class LeNet():
 			
 		h = vd.get_output(h,self.deterministic)
 		
-		self.pred = Dense(num_classes, activation='softmax')(h)
+		self.pred = Dense(num_classes, activation='softmax')(h) ### Make this FCVarDropout as well
 		
 		eps = 1e-8
 		pred = tf.clip_by_value(self.pred,eps,1-eps)
