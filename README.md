@@ -2,6 +2,6 @@
 
 Based on the Theano/Lasagne implementation by the authors at https://github.com/ars-ashuha/variational-dropout-sparsifies-dnn.    
 
-This is a work in progress.    
+This is a work in progress.     
 
-Currently runs a simple CNN on MNIST, getting a test set accuracy of 98.2%.    
+Currently runs a simple CNN on MNIST, getting a test set accuracy of 98.6%.    

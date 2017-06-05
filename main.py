@@ -66,7 +66,7 @@ def sgvlb(predictions, targets, W, log_sigma2, rw=None, train_clip=False, thresh
 	num_batches = int(60000/batch_size) # num_samples / batch_size = N/M, eqn 4 
 	loss = num_batches * ell(predictions, targets)
 	loss -= rw*reg(W,log_sigma2) # Subtract the KL-divergence term
-	### Gets a higher accuracy on MNIST when rw is removed
+	### Gets a higher accuracy on MNIST when rw is removed?
 	return loss
 
 
@@ -88,15 +88,16 @@ class LeNet():
 		h = Flatten()(h)
 		
 		if num_channels == 1:
-			vd = FCVarDropout(9216,128,tf.nn.relu) ### 500 instead?
+			vd = FCVarDropout(9216,500,tf.nn.relu)
 		elif num_channels == 3:
-			vd = FCVarDropout(12544,128,tf.nn.relu)
+			vd = FCVarDropout(12544,500,tf.nn.relu)
 		else:
 			raise NotImplementedError
 			
 		h = vd.get_output(h,self.deterministic)
 		
-		self.pred = Dense(num_classes, activation='softmax')(h) ### Make this FCVarDropout as well
+		vd = FCVarDropout(500,num_classes,tf.nn.softmax)
+		self.pred = vd.get_output(h,self.deterministic)
 		
 		eps = 1e-8
 		pred = tf.clip_by_value(self.pred,eps,1-eps)

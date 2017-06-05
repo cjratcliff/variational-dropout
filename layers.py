@@ -31,7 +31,7 @@ class FCVarDropout():
 		# ARD is Automatic Relevance Determination
 		self.log_sigma2 = tf.Variable(ard_init*tf.ones([num_in, num_out]), 'ls2')
 
-
+	### Use call instead, as with Keras layers
 	def get_output(self, x, deterministic, train_clip=False, thresh=3):
 		# Alpha is the dropout rate
 		log_alpha = clip(self.log_sigma2 - tf.log(self.W**2 + eps))
