@@ -7,7 +7,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 import time
 
-from layers import FCVarDropout, clip #Conv2DVarDropOut
+from layers import FCVarDropout, clip#, Conv2DVarDropOut
+
 
 batch_size = 32
 sess = tf.Session()
@@ -47,7 +48,7 @@ def ell(pred, targets):
 	# Approximated by eqn 4.
 	eps = 1e-8
 	pred = tf.clip_by_value(pred, eps, 1-eps)
-	return tf.reduce_sum(tf.log(pred)*targets)
+	return -tf.reduce_sum(tf.log(pred)*targets)
 
 
 def reg(W, log_sigma2):
@@ -59,10 +60,11 @@ def sgvlb(predictions, targets, W, log_sigma2, rw=None, train_clip=False, thresh
 	# See eqns 3 and 4
 	if rw is None:
 		rw = tf.Variable(tf.constant(1.0)) ### Variable? trainable?
-	num_batches = int(60000/batch_size) # num_samples / batch_size # N/M, eqn 4 ### May be able to be omitted if reduce_mean is used instead of sum
+	num_batches = int(60000/batch_size) # num_samples / batch_size = N/M, eqn 4 
 	loss = num_batches * ell(predictions, targets)
-	loss += rw*reg(W,log_sigma2) # Subtract the KL-divergence term
-	return -loss
+	loss -= rw*reg(W,log_sigma2) # Subtract the KL-divergence term
+	### Gets a higher accuracy on MNIST when rw is removed
+	return loss
 
 
 class LeNet():
@@ -80,10 +82,12 @@ class LeNet():
 		
 		h = Flatten()(h)
 		
-		if num_channels == 2:
+		if num_channels == 1:
 			vd = FCVarDropout(9216,128,tf.nn.relu)
 		elif num_channels == 3:
 			vd = FCVarDropout(12544,128,tf.nn.relu)
+		else:
+			raise NotImplementedError
 			
 		h = vd.get_output(h,self.deterministic)
 		
@@ -149,10 +153,10 @@ class LeNet():
 
 
 def main():
-	dataset = 'cifar100' # mnist, cifar10, cifar100
+	dataset = 'mnist' # mnist, cifar10, cifar100
 	
 	# Load the data
-	# Download it first if necessary
+	# It will be downloaded first if necessary
 	if dataset == 'mnist':
 		(X_train, y_train), (X_test, y_test) = mnist.load_data()
 		img_size = 28
@@ -180,6 +184,7 @@ def main():
 	X_test = np.reshape(X_test,[-1,img_size,img_size,num_channels])
 	X_train /= 255
 	X_test /= 255
+	
 	print('X_train shape:', X_train.shape)
 	print(X_train.shape[0], 'train samples')
 	print(X_test.shape[0], 'test samples')
