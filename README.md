@@ -1,7 +1,7 @@
 ### Variational Dropout Sparsifies Deep Neural Networks
 #### Molchanov et al. (2017)
 
-Implementation for TensorFlow, based on the Theano/Lasagne version by the authors at [here](https://github.com/ars-ashuha/variational-dropout-sparsifies-dnn). 
+Implementation for TensorFlow, based on the Theano/Lasagne version by the authors [here](https://github.com/ars-ashuha/variational-dropout-sparsifies-dnn). 
 You can read the original paper [here](https://arxiv.org/pdf/1701.05369.pdf).    
 
 #### Requirements

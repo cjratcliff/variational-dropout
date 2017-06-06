@@ -77,6 +77,8 @@ class Conv2DVarDropout():
 		self.W = weight_matrix(kernel_shape)
 		tf.add_to_collection('W', self.W)
 		
+		self.b = tf.Variable(tf.zeros([filters_out]))
+		
 		self.log_sigma2 = tf.Variable(ard_init*tf.ones(kernel_shape), 'ls2')
 		tf.add_to_collection('log_sigma2', self.log_sigma2)
 
@@ -100,6 +102,5 @@ class Conv2DVarDropout():
 			return mu + tf.random_normal(tf.shape(mu), mean=0.0, stddev=1.0) * si
 		
 		h = tf.cond(deterministic, true_path, false_path)
-		return self.nonlinearity(h) ### + self.b?
-
+		return self.nonlinearity(h + self.b)
 

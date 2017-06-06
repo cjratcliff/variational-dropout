@@ -12,7 +12,7 @@ sess = tf.Session()
 
 
 def main():
-	dataset = 'cifar10' # mnist, cifar10, cifar100
+	dataset = 'mnist' # mnist, cifar10, cifar100
 	
 	# Load the data
 	# It will be downloaded first if necessary
