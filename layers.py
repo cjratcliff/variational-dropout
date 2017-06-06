@@ -1,10 +1,12 @@
+from __future__ import division
+from __future__ import print_function
+
 import tensorflow as tf
 import numpy as np
 
-eps = 1e-8
+from utils import clip
 
-def clip(x):
-	return tf.clip_by_value(x, -8, 8)
+eps = 1e-8
 	
 	
 def weight_matrix(dims):
