@@ -1,13 +1,14 @@
-### TensorFlow implementation of the method from Variational Dropout Sparsifies Deep Neural Networks, Molchanov et al. (2017)
+### Variational Dropout Sparsifies Deep Neural Networks
+#### Molchanov et al. (2017)
 
-Based on the Theano/Lasagne implementation by the authors at https://github.com/ars-ashuha/variational-dropout-sparsifies-dnn.    
+Implementation for Tensorflow. Based on the Theano/Lasagne implementation by the authors at https://github.com/ars-ashuha/variational-dropout-sparsifies-dnn.    
 
 #### Requirements
-TensorFlow 1.1
-Python 2.7
-Numpy
-Scikit-learn
-Keras
+- TensorFlow 1.1
+- Python 2.7
+- Numpy
+- Scikit-learn
+- Keras
 
 This is a work in progress.     
 
