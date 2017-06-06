@@ -48,7 +48,7 @@ def main():
 	print(X_train.shape[0], 'train samples')
 	print(X_test.shape[0], 'test samples')
 
-	m = VGG(img_size,num_channels,num_classes)
+	m = LeNet(img_size,num_channels,num_classes)
 	sess.run(tf.global_variables_initializer())
 
 	m.fit(X_train,y_train_one_hot,sess)
