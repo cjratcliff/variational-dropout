@@ -64,14 +64,15 @@ class FCVarDropout():
 		return self.nonlinearity(h + self.b)
 		
 		
-class Conv2DVarDropOut():
-	def __init__(self, kernel_shape, strides=(1,1,1,1), padding='VALID', nonlinearity=tf.nn.relu, ard_init=-10):
+class Conv2DVarDropout():
+	def __init__(self, filters_in, filters_out, kernel, strides=(1,1,1,1), padding='VALID', nonlinearity=tf.nn.relu, ard_init=-10):
 		if len(strides) == 2:
 			strides = [1,strides[0],strides[1],1]
 	
 		self.strides = strides
 		self.padding = padding
 		self.nonlinearity = nonlinearity
+		kernel_shape = [kernel[0],kernel[1],filters_in,filters_out]
 		
 		self.W = weight_matrix(kernel_shape)
 		tf.add_to_collection('W', self.W)

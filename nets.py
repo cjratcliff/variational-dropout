@@ -8,11 +8,12 @@ from sklearn.model_selection import train_test_split
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 
-from layers import FCVarDropout, Conv2DVarDropOut
+from layers import FCVarDropout, Conv2DVarDropout
 from loss import sgvlb
 from utils import get_minibatches_idx, clip
 
 batch_size = 32
+eps = 1e-8
 
 
 class Net():
@@ -28,7 +29,7 @@ class Net():
 			print("\nEpoch %d" % (epoch+1))
 			
 			train_accs = []
-			for it in train_indices:
+			for c,it in enumerate(train_indices):
 				batch_train_x = [X_train[i] for i in it]
 				batch_train_y = [y_train[i] for i in it]
 				feed_dict = {self.x: batch_train_x, 
@@ -36,7 +37,7 @@ class Net():
 							self.deterministic: False}
 				_,acc = sess.run([self.train_step,self.accuracy], feed_dict)
 				train_accs.append(acc)
-			
+				print(c,len(train_indices),acc)
 			print("Training accuracy: %.3f" % np.mean(train_accs))		
 			val_pred = self.predict(X_val,sess)
 			y = np.argmax(y_val,axis=1)
@@ -67,21 +68,18 @@ class LeNet(Net):
 		self.x = tf.placeholder(tf.float32, [None,img_size,img_size,num_channels], 'x')
 		self.y = tf.placeholder(tf.float32, [None,num_classes], 'y')
 		self.deterministic = tf.placeholder(tf.bool, name='d')
+		d = self.deterministic
 
-		vd = Conv2DVarDropOut([3,3,1,32], (1,1))
-		h = vd(self.x,self.deterministic)
-		
-		vd = Conv2DVarDropOut([3,3,32,64], (1,1))
-		h = vd(h,self.deterministic)
-		
+		h = Conv2DVarDropout(1, 32, (3,3), strides=(1,1))(self.x,d)
+		h = Conv2DVarDropout(32, 64, (3,3), strides=(1,1))(h,d)		
 		h = MaxPooling2D(pool_size=(2,2))(h)
 		
 		h = Flatten()(h)
 		
 		if num_channels == 1:
-			vd = FCVarDropout(9216,500,tf.nn.relu)
+			vd = FCVarDropout(9216,500)
 		elif num_channels == 3:
-			vd = FCVarDropout(12544,500,tf.nn.relu)
+			vd = FCVarDropout(12544,500)
 		else:
 			raise NotImplementedError
 			
@@ -90,7 +88,6 @@ class LeNet(Net):
 		vd = FCVarDropout(500,num_classes,tf.nn.softmax)
 		self.pred = vd(h,self.deterministic)
 		
-		eps = 1e-8
 		pred = tf.clip_by_value(self.pred,eps,1-eps)
 		
 		W = tf.get_collection('W')
@@ -106,5 +103,54 @@ class LeNet(Net):
 
 class VGG(Net):
 	def __init__(self, img_size, num_channels, num_classes):
-		pass
+		# Based on https://github.com/fchollet/keras/blob/master/keras/applications/vgg16.py
 
+		self.x = tf.placeholder(tf.float32, [None,img_size,img_size,num_channels], 'x')
+		self.y = tf.placeholder(tf.float32, [None,num_classes], 'y')
+		self.deterministic = tf.placeholder(tf.bool, name='d')
+		d = self.deterministic
+
+		# Block 1
+		h = Conv2DVarDropout(num_channels, 64, (3, 3), padding='SAME')(self.x,d)
+		h = Conv2DVarDropout(64, 64, (3, 3), padding='SAME')(h,d)
+		h = MaxPooling2D((2, 2), strides=(2, 2))(h)
+
+		# Block 2
+		h = Conv2DVarDropout(64, 128, (3, 3), padding='SAME')(h,d)
+		h = Conv2DVarDropout(128, 128, (3, 3), padding='SAME')(h,d)
+		h = MaxPooling2D((2, 2), strides=(2, 2))(h)
+
+		# Block 3
+		h = Conv2DVarDropout(128, 256, (3, 3), padding='SAME')(h,d)
+		h = Conv2DVarDropout(256, 256, (3, 3), padding='SAME')(h,d)
+		h = Conv2DVarDropout(256, 256, (3, 3), padding='SAME')(h,d)
+		h = MaxPooling2D((2, 2), strides=(2, 2))(h)
+
+		# Block 4
+		#h = Conv2DVarDropout(256, 512, (3, 3), padding='SAME')(h,d)
+		#h = Conv2DVarDropout(512, 512, (3, 3), padding='SAME')(h,d)
+		#h = Conv2DVarDropout(512, 512, (3, 3), padding='SAME')(h,d)
+		#h = MaxPooling2D((2, 2), strides=(2, 2))(h)
+
+		# Block 5
+		#h = Conv2DVarDropout(512, 512, (3, 3), padding='SAME')(h,d)
+		#h = Conv2DVarDropout(512, 512, (3, 3), padding='SAME')(h,d)
+		#h = Conv2DVarDropout(512, 512, (3, 3), padding='SAME')(h,d)
+		#h = MaxPooling2D((2, 2), strides=(2, 2))(h)
+		
+		h = Flatten()(h)
+		h = FCVarDropout(4096, 4096)(h,d)
+		h = FCVarDropout(4096, 4096)(h,d)
+		self.pred = FCVarDropout(4096, num_classes, tf.nn.softmax)(h,d)
+
+		pred = tf.clip_by_value(self.pred,eps,1-eps)
+		
+		W = tf.get_collection('W')
+		log_sigma2 = tf.get_collection('log_sigma2')
+		loss = sgvlb(pred, self.y, W, log_sigma2, batch_size)
+		
+		correct_prediction = tf.equal(tf.argmax(self.y, 1), tf.argmax(self.pred, 1))
+		self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='accuracy')
+		
+		optimizer = tf.train.AdamOptimizer()
+		self.train_step = optimizer.minimize(loss)
