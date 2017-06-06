@@ -25,11 +25,15 @@ def bias_vector(num_out):
 class FCVarDropout():
 	def __init__(self, num_in, num_out, nonlinearity=tf.nn.relu, ard_init=-10):
 		self.reg = True
-		self.W = weight_matrix([num_in, num_out])
 		self.b = bias_vector(num_out)
 		self.nonlinearity = nonlinearity
+		
+		self.W = weight_matrix([num_in, num_out])
+		tf.add_to_collection('W', self.W)
+
 		# ARD is Automatic Relevance Determination
 		self.log_sigma2 = tf.Variable(ard_init*tf.ones([num_in, num_out]), 'ls2')
+		tf.add_to_collection('log_sigma2', self.log_sigma2)
 
 	def __call__(self, x, deterministic, train_clip=False, thresh=3):
 		# Alpha is the dropout rate
@@ -62,12 +66,16 @@ class Conv2DVarDropOut():
 	def __init__(self, kernel_shape, strides=(1,1,1,1), padding='VALID', nonlinearity=tf.nn.relu, ard_init=-10):
 		if len(strides) == 2:
 			strides = [1,strides[0],strides[1],1]
-		
-		self.W = weight_matrix(kernel_shape)
+	
 		self.strides = strides
 		self.padding = padding
 		self.nonlinearity = nonlinearity
+		
+		self.W = weight_matrix(kernel_shape)
+		tf.add_to_collection('W', self.W)
+		
 		self.log_sigma2 = tf.Variable(ard_init*tf.ones(kernel_shape), 'ls2')
+		tf.add_to_collection('log_sigma2', self.log_sigma2)
 
 	def __call__(self, x, deterministic, train_clip=False, thresh=3):
 		# Alpha is the dropout rate

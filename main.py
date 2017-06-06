@@ -102,8 +102,8 @@ class LeNet():
 		eps = 1e-8
 		pred = tf.clip_by_value(self.pred,eps,1-eps)
 		
-		W = [vd.W]
-		log_sigma2 = [vd.log_sigma2]
+		W = tf.get_collection('W')
+		log_sigma2 = tf.get_collection('log_sigma2')
 		loss = sgvlb(pred, self.y, W, log_sigma2)
 		
 		correct_prediction = tf.equal(tf.argmax(self.y, 1), tf.argmax(self.pred, 1))
