@@ -6,13 +6,13 @@ import numpy as np
 from keras.datasets import mnist, cifar10, cifar100
 from sklearn.preprocessing import LabelBinarizer
 
-from nets import LeNet, VGG
+from nets import LeNet, LeNetVarDropout, VGG, VGGVarDropout
 
 sess = tf.Session()
 
 
 def main():
-	dataset = 'mnist' # mnist, cifar10, cifar100
+	dataset = 'cifar10' # mnist, cifar10, cifar100
 	
 	# Load the data
 	# It will be downloaded first if necessary
@@ -48,12 +48,13 @@ def main():
 	print(X_train.shape[0], 'train samples')
 	print(X_test.shape[0], 'test samples')
 
-	m = LeNet(img_size,num_channels,num_classes)
+	m = VGGVarDropout(img_size,num_channels,num_classes)
 	sess.run(tf.global_variables_initializer())
 
 	m.fit(X_train,y_train_one_hot,sess)
 	
 	pred = m.predict(X_test,sess)
+	y_test = np.squeeze(y_test)
 	acc = np.mean(np.equal(y_test,pred))
 	print("\nTest accuracy: %.3f" % acc)
 	

@@ -29,7 +29,7 @@ def reg(W, log_sigma2):
     return sum([eval_reg(w,s) for (w,s) in zip(W,log_sigma2)])
 
 
-def sgvlb(predictions, targets, W, log_sigma2, batch_size, rw=None, train_clip=False, thresh=3):
+def sgvlb(predictions, targets, W, log_sigma2, batch_size, rw=None):
 	# Stochastic gradient variational lower bound
 	# See eqns 3 and 4
 	if rw is None:
