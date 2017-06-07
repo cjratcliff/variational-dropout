@@ -11,6 +11,6 @@ You can read the original paper [here](https://arxiv.org/pdf/1701.05369.pdf).
 - Scikit-learn
 - Keras
 
-This repo contains fully connected and convolutional layers with variational dropout.
+This is a work in progress. The repo contains fully connected and convolutional layers with variational dropout.
 
-Currently runs a simple CNN on MNIST, CIFAR-10 or CIFAR-100.  
+Currently runs a simple CNN or larger VGG-like network on MNIST, CIFAR-10 or CIFAR-100.  
